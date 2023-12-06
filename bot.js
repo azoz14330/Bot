@@ -1,7 +1,118 @@
+require('dotenv').config();
+const sqlite3 = require("sqlite3").verbose();
 const Discord = require('discord.js');
 const bot = new Discord.Client({ intents: ['GuildMessages','Guilds', 'GuildMembers','DirectMessages', 'MessageContent']});
-require('dotenv').config();
+
+
 bot.login(process.env.token);
+
+
+function isNumeric(value) {
+    return !isNaN(value);
+}
+
+
+function parseCommand(msg){
+    let command = msg.content;
+    command = command.slice(1);
+    commandArray = command.split(" ");
+    commandName = commandArray[0];
+
+
+    switch (commandName) {
+        case "printdb":
+          if (msg.author.id == "225953850765344769"){
+            printdb();
+            msg.channel.send("Printed your bitchass database")
+          };
+          break;
+          
+        case "spent":
+          if(commandArray.length != 2 || !isNumeric(commandArray[1])){
+            msg.channel.send("Use the command correctly (!spent 'numeric-amount')");
+            break;
+          }
+          if(msg.author.id != "225953850765344769"){
+            msg.channel.send("WHOOO ARE YOOOOU???");
+            break;
+          }else{
+            msg.channel.send(msg.createdTimestamp.toString());
+            writedb(commandArray[1], msg.createdTimestamp);
+          }
+          break;
+
+        default:
+          msg.channel.send("Invalid command")
+          console.log(msg.author);
+          console.log(commandArray);
+          break;
+}
+}
+
+const db = new sqlite3.Database("./database/money.db", sqlite3.OPEN_READWRITE, (err)=> {
+    if (err) return console.error(err.message);
+
+    db.run('CREATE TABLE IF NOT EXISTS money (id INTEGER PRIMARY KEY AUTOINCREMENT, amount DECIMAL(10,2) NOT NULL, timestamp INTEGER NOT NULL)');
+    console.log('connected to the db');
+});
+
+function dbclose(){
+    db.close((err)=>{
+        if (err) return console.error(err.message);
+
+        console.log('closed the database');
+    })
+}
+process.on("exit", () =>{
+    db.close()
+})
+
+
+// function writedb(date,name,content,id){
+//     const sql = `INSERT INTO messages(date, username, content, id)
+//             VALUES(?,?,?,?)`;
+//     db.run(sql,[date,name, content,id], (err)=>{
+//         if (err) return console.error(err.message);
+
+//         console.log('Message logged');
+// });
+// }
+
+
+function writedb(amount ,date){
+    const sql = `INSERT INTO money(amount, timestamp)
+            VALUES(?,?)`;
+
+    db.run(sql,[amount,date], (err)=>{
+        if (err) return console.error(err.message);
+
+        console.log(`logged amount: ${amount}, and date ${date}`);
+});
+}
+
+
+function printdb(){
+    const sql = `SELECT * FROM money`;
+    db.all(sql, [], (err, rows)=>{
+        if (err) return console.error(err.message);
+        rows.forEach(row =>{
+            console.log(row);
+        });
+    });    
+}
+function timeConverter(UNIX_timestamp){
+    var a = new Date(UNIX_timestamp);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var year = a.getFullYear();
+    var month = months[a.getMonth()];
+    var date = a.getDate();
+    var hour = a.getHours();
+    var min = a.getMinutes();
+    var sec = a.getSeconds();
+    var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec ;
+    return String(time);
+  }
+
 function check(num1,num2)
 {
     if((isNaN(num1)||isNaN(num2)))
@@ -34,16 +145,15 @@ function doMath(command, num1, num2)
     return "Invalid commad";
 }
 bot.on("messageCreate",(msg) => {
-    // if (msg.author.id !== bot.user.id){
-    //     msg.channel.send("\:7rsh:");
-    // }
+
     if(msg.content[0] == "!" && msg.content.length >1)
     {
-        let command = msg.content.substring(1);
-        let Array = command.split(" ");
-        if(Array.length == 3)
-        {
-            msg.channel.send(doMath(Array[0],Array[1],Array[2]));
-        }
+        parseCommand(msg);
     }
-})
+    if(msg.content.includes("may I sheesh that?")){
+        msg.channel.send("You absolutely may");
+    }
+    if(msg.content.includes(":7rsh:") && msg.author != bot.author){
+        msg.channel.send('<:7rsh:819272274116870195>');
+    }
+    })
