@@ -6,9 +6,31 @@ const bot = new Discord.Client({ intents: ['GuildMessages','Guilds', 'GuildMembe
 
 bot.login(process.env.token);
 
-
 function isNumeric(value) {
     return !isNaN(value);
+}
+
+
+function getSpent(days){
+    sum = 0.0;
+    let currentDate = new Date();
+    let now = currentDate.getTime(); //unix timestamp
+    let from = currentDate.setDate(currentDate.getDate() - days);
+    // console.log(`From ${from} to ${now}`);
+    return new Promise((resolve, reject)=>{
+        db.all('SELECT amount, timestamp FROM money', (err, rows) => {
+            if (err) {
+              console.error(err.message);
+            } else {
+            rows.forEach((row) => {
+                if(from < row.timestamp){
+                    sum = sum + parseFloat(row.amount);
+                }
+              });
+            }
+            resolve(sum);
+          });
+    })  
 }
 
 
@@ -39,6 +61,27 @@ function parseCommand(msg){
             msg.channel.send(msg.createdTimestamp.toString());
             writedb(commandArray[1], msg.createdTimestamp);
           }
+          break;
+
+          case "history":
+            if (msg.author.id == "225953850765344769" && commandArray.length == 2 && isNumeric(commandArray[1])){
+                // getSpent(parseInt(commandArray[1]))
+                // .then((spent)=>{
+                //     msg.channel.send(`Over the past ${commandArray[1]} days, you've spent ${spent}`);
+                // })
+                // .catch(error=>{
+                //     console.error(error);
+                // })
+                const measureTime = (getSpent, args) => {
+                    const start = new Date().getTime();
+                    getSpent(args).then((spent) => {
+                        msg.channel.send(`Over the past ${commandArray[1]} days, you've spent ${spent}`);
+                        const end = new Date().getTime();
+                        console.log(`Time taken: ${end - start}ms`);
+                    }).catch();
+                } 
+                measureTime(getSpent,commandArray[1])
+            }
           break;
 
         default:
